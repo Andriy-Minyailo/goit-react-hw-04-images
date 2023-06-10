@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useEffect, useState } from 'react';
 import css from './App.module.css';
 import { RequestServer } from '../pixabayAPI';
 
@@ -9,83 +9,81 @@ import { Loader } from './Loader/Loader';
 import { Modal } from './Modal/Modal';
 
 const requestServer = new RequestServer();
-export class App extends Component {
-  state = {
-    imgs: [],
-    totalHits: 0,
-    page: 1,
-    value: '',
-    stateLoader: false,
-    stateModal: false,
-    modalImg: '',
-    error: null,
-  };
 
-  resetState = () => {
-    this.setState({ imgs: [], totalHits: 0, page: 1, value: '', error: null });
-  };
+export const App = () => {
+  const [imgs, setImgs] = useState([]);
+  const [totalHitsLocal, setTotalHitsLocal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [searchValue, setSearchValue] = useState('');
+  const [stateLoader, setStateLoader] = useState(false);
+  const [stateModal, setStateModal] = useState(false);
+  const [modalImg, setModalImg] = useState('');
+  const [error, setError] = useState(null);
 
-  arraySearchImg = async (value = this.state.value) => {
-    this.setState({ stateLoader: true });
+  useEffect(() => {
+    if (!searchValue) return;
+    arraySearchImg(searchValue, page);
+  }, [searchValue, page]);
+
+  const arraySearchImg = async (search, number) => {
+    setStateLoader(true);
 
     try {
       const {
         data: { hits, totalHits },
-      } = await requestServer.searchImg(value, this.state.page);
-      if (totalHits === 0) {
-        this.setState({ error: 'No images found!' });
+      } = await requestServer.searchImg(search, number);
+      if (!totalHits) {
+        setError('No images found!');
+        return;
       }
-      this.setState(prevState => {
-        return {
-          imgs: [...prevState.imgs, ...hits],
-          totalHits,
-          page: this.state.page + 1,
-          value,
-        };
-      });
+      setImgs(prevState => [...prevState, ...hits]);
+      setTotalHitsLocal(totalHits);
     } catch (er) {
       console.log(er.message);
-      this.setState({ error: er.message });
+      setError(er.message);
     } finally {
-      this.setState({ stateLoader: false });
+      setStateLoader(false);
     }
   };
 
-  openModal = ({ currentTarget: { id } }) => {
-    const imgModal = this.state.imgs.find(hit => hit.id === Number(id));
-    this.setState({ modalImg: imgModal, stateModal: true });
+  const newSearchValue = inputValue => {
+    setSearchValue(inputValue);
+    setImgs([]);
+    setTotalHitsLocal(0);
+    setPage(1);
+    setError(null);
   };
 
-  closeModal = () => {
-    this.setState({ stateModal: false });
+  const openModal = ({ currentTarget: { id } }) => {
+    const imgModal = imgs.find(hit => hit.id === Number(id));
+    setModalImg(imgModal);
+    setStateModal(true);
   };
 
-  render() {
-    const { imgs, stateLoader, totalHits, page, stateModal, modalImg, error } =
-      this.state;
-    const { resetState, arraySearchImg, openModal, closeModal } = this;
+  const closeModal = () => {
+    setStateModal(false);
+    setModalImg('');
+  };
 
-    return (
-      <div className={css.app}>
-        <Searchbar
-          resetState={resetState}
-          arraySearchImg={arraySearchImg}
-        ></Searchbar>
+  const loadMoreBtn = () => {
+    setPage(page + 1);
+  };
 
-        {error ? (
-          <h2>{error}</h2>
-        ) : (
-          <ImageGallery imgs={imgs} openModal={openModal} />
-        )}
+  return (
+    <div className={css.app}>
+      <Searchbar newSearchValue={newSearchValue}></Searchbar>
 
-        {stateLoader && <Loader />}
+      {error ? (
+        <h2>{error}</h2>
+      ) : (
+        <ImageGallery imgs={imgs} openModal={openModal} />
+      )}
 
-        {totalHits / 12 > page - 1 && (
-          <BtnLoadMore arraySearchImg={arraySearchImg} />
-        )}
+      {stateLoader && <Loader />}
 
-        {stateModal && <Modal modalImg={modalImg} closeModal={closeModal} />}
-      </div>
-    );
-  }
-}
+      {totalHitsLocal / 12 > page && <BtnLoadMore loadMoreBtn={loadMoreBtn} />}
+
+      {stateModal && <Modal modalImg={modalImg} closeModal={closeModal} />}
+    </div>
+  );
+};

@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import css from './Buton.module.css';
 
-export const BtnLoadMore = ({ arraySearchImg }) => {
+export const BtnLoadMore = ({ loadMoreBtn }) => {
   return (
     <>
-      <button className={css.button} onClick={() => arraySearchImg()}>
+      <button className={css.button} onClick={loadMoreBtn}>
         Load more
       </button>
     </>
@@ -12,5 +12,5 @@ export const BtnLoadMore = ({ arraySearchImg }) => {
 };
 
 BtnLoadMore.propTypes = {
-  arraySearchImg: PropTypes.func.isRequired,
+  loadMoreBtn: PropTypes.func.isRequired,
 };
